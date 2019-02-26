@@ -25,6 +25,10 @@ export default {
     listenScroll: {
       type: Boolean,
       default: false
+    },
+    pullup: {
+      type:Boolean,
+      default:false
     }
   },
   mounted (){
@@ -33,6 +37,7 @@ export default {
     }, 20)
   },
   methods: {
+      //初始化
       _initScroll(){
         if(!this.$refs.wrapper){
           return
@@ -46,6 +51,13 @@ export default {
           let me = this
           this.scroll.on('scroll', (pos) => {
             me.$emit('scroll', pos)
+          })
+        }
+        if(this.pullup){
+          this.scroll.on('scrollEnd', ()=>{
+            if(this.scroll.y <= (this.scroll.maxScrollY +50)){
+              this.$emit('scrollToEnd')
+            }
           })
         }
       },
@@ -66,6 +78,7 @@ export default {
       }
   },
 
+//监听data数据变化，重新刷新界面
   watch: {
     data() {
       setTimeout(() => {

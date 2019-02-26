@@ -1,6 +1,6 @@
 <template>
-  <div class="singer">
-    <listview :data="this.singer" @select="selectSinger"></listview>
+  <div class="singer" ref="singer">
+    <listview :data="this.singer" @select="selectSinger" ref="list"></listview>
     <router-view></router-view>
   </div>
 </template>
@@ -11,11 +11,13 @@ import {ERR_OK} from 'api/config'
 import Listview from 'base/listview/listview'
 import Singer from 'common/js/singer'
 import {mapMutations} from 'vuex'
+import {playlistMixin} from 'common/js/mixin'
 
 const HOT_NAME = "热门"
 const HOT_SINGER_LEN = 10
 
 export default {
+  mixins: [playlistMixin],
   data (){
     return {
       singer: []
@@ -25,6 +27,13 @@ export default {
     this._getSingerList()
   },
   methods: {
+    handlePlaylist(playlist) {
+      const bottom = playlist.length? '60px' : ''
+      this.$refs.singer.style.bottom = bottom
+      this.$refs.list.refresh()
+    },
+    //获取子组件listview派发出的select事件
+    //根据相应id跳转路由
     selectSinger(singer){
       this.$router.push({
         path: `/singer/${singer.id}`
@@ -35,7 +44,6 @@ export default {
       getSingerList().then((res) => {
         if(res.code === ERR_OK){
           this.singer = this._normalizeSinger(res.data.list)
-          console.log(this.singer)
         }})
       },
     _normalizeSinger(list){
@@ -45,7 +53,7 @@ export default {
           items: []
         }
       }
-
+      //热门歌手
       list.forEach((item,index) => {
         if(index < HOT_SINGER_LEN){
           map.hot.items.push(new Singer({
@@ -53,6 +61,7 @@ export default {
             name: item.Fsinger_name          
           }))
         }
+        //字母标签
         const key = item.Findex
         if(!map[key]) {
           map[key] = {

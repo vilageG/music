@@ -59,6 +59,7 @@ export default {
     selectItem(item){
       this.$emit('select',item)
     },
+    //初次点击记录点击点
     onShortcutTouchStart(e){
       let anchorIndex = getData(e.target, 'index')
       let firstTouch = e.touches[0]
@@ -66,13 +67,15 @@ export default {
       this.touch.anchorIndex = anchorIndex
       this._scrollTo(anchorIndex)
     },
+    //拖动时计算拖动点与初次点距离计算拖动多少点
     onShortcutTouchMove(e){
       let firstTouch = e.touches[0]
       this.touch.y2 =firstTouch.pageY
       let delta = (this.touch.y2 - this.touch.y1)/ ANCHOR_HEIGHT | 0 
       let anchorIndex = parseInt(this.touch.anchorIndex) + delta
-       this._scrollTo(anchorIndex)
+      this._scrollTo(anchorIndex)
     },
+    //跳到指定点
     _scrollTo(index){
       if(index <0){
         index = 0
@@ -85,6 +88,7 @@ export default {
     scroll(pos){
       this.scrollY = pos.y
     },
+    // 计算歌手列表高度
     _calculateHeight(){
       this.listHeight = []
       const list = this.$refs.listGroup
@@ -95,6 +99,9 @@ export default {
         height+= item.clientHeight
         this.listHeight.push(height)
       }
+    },
+    refresh() {
+      this.$refs.listview.refresh()
     }
   },
   watch:{
@@ -105,11 +112,12 @@ export default {
     },
     scrollY(newY){
       const listHeight = this.listHeight
+      //当滚动到顶部
       if(newY > 0){
         this.currentIndex = 0 
         return 
       }
-
+      //在中间部分滚动
       for(let i=0;i<listHeight.length -1; i++){
         let height1 = listHeight[i]
         let height2 = listHeight[i+1]
@@ -118,6 +126,7 @@ export default {
           return 
         }
       }
+      // 当滚动到底部，且-newY大于最后一个元素上限
       this.currentIndex = listHeight.length - 2
     }
   },

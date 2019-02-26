@@ -6,8 +6,8 @@
       <h1 class="title" v-html="title"></h1>
       <div class="bg-image" :style="bgStyle" ref="bgImage">
           <div class="play-wrapper">
-            <div class="play" >
-              <i class="icon-play" v-show="songs.length>0"></i>
+            <div class="play" ref="playBtn" >
+              <i class="icon-play" v-show="songs.length>0" ></i>
               <span class="text">随机播放全部</span>
             </div>
           </div>
@@ -16,7 +16,7 @@
   <div class="bg-layer" ref="layer"></div>
   <Scroll :data="songs" class="list" ref="list" :probe-type="probeType" :listen-scroll="listenScroll" @scroll="scroll">
     <div class="song-list-wrapper">
-      <song-list :songs="songs" @select="selectItem"></song-list>
+      <song-list :songs="songs" @select="selectItem" :rank="rank"></song-list>
     </div>
   </Scroll>
     </div>
@@ -24,11 +24,22 @@
 
 
 <script>
+import {prefixStyle} from 'common/js/dom'
 import Scroll from 'base/scroll/scroll'
 import SongList from 'base/song-list/song-list'
 import {mapActions} from 'vuex'
+import {playlistMixin} from 'common/js/mixin'
+
+const transform = prefixStyle('transform')
+
+
 export default {
+  mixins: [playlistMixin],
   props:{
+    bgImage: {
+      type: String,
+      default: ''
+    },
     id:{
       type: String,
       default: ''
@@ -40,6 +51,10 @@ export default {
     title: {
       type: String,
       default: ''
+    },
+    rank: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -49,7 +64,11 @@ export default {
   },
   computed:{
     bgStyle(){
-      return `background-image:url(http://y.gtimg.cn/music/photo_new/T001R150x150M000${this.id}.webp)`
+      if(this.id){
+        return `background-image:url(http://y.gtimg.cn/music/photo_new/T001R150x150M000${this.id}.webp)`
+      }else{
+        return `background-image:url(${this.bgImage})`
+      }
     }
   },
   created(){
@@ -62,6 +81,11 @@ export default {
     this.$refs.list.$el.style.top = `${this.$refs.bgImage.clientHeight}px`
   },
   methods:{
+    handlePlaylist(playlist) {
+      const bottom = playlist.length > 0 ? '60px' : ''
+      this.$refs.list.$el.style.bottom = bottom
+      this.$refs.list.refresh()
+    },
     scroll(pos){
       this.scrollY = pos.y
     },
@@ -83,24 +107,25 @@ export default {
       let translateY = Math.max(this.minTranslateY, newY)
       let zIndex = 0
       let scale = 1
-      this.$refs.layer.style.transform = `translate3d(0,${translateY}px,0)`
-      this.$refs.layer.style.WebkitTransform = `translate3d(0,${translateY}px,0)`
+      this.$refs.layer.style[transform] = `translate3d(0,${translateY}px,0)`
       const percent = Math.abs(newY/ this.imageHeight)
       if (newY > 0) {
         scale = 1 + percent
         zIndex = 10
       }
-      if (newY < this.minTransalteY) {
+      if (newY < this.minTranslateY) {
           zIndex = 10
           this.$refs.bgImage.style.paddingTop = 0
           this.$refs.bgImage.style.height = `40px`
+          this.$refs.playBtn.style.display = 'none'
          
       } else {
           this.$refs.bgImage.style.paddingTop = '70%'
           this.$refs.bgImage.style.height = 0
+          this.$refs.playBtn.style.display = ''
          
       }
-       this.$refs.bgImage.style.transform = `scale(${scale})`
+       this.$refs.bgImage.style[transform] = `scale(${scale})`
         this.$refs.bgImage.style.zIndex = zIndex
     }
   },

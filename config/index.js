@@ -12,11 +12,15 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/api/getDiscList': {
+        //target代表源地址
         target: 'https://c.y.qq.com/splcloud/fcgi-bin/fcg_get_diss_by_tag.fcg',
+        //bypass代表访问源地址是提前设置的数据
         bypass: function (req, res, proxyOptions) {
           req.headers.referer = 'https://c.y.qq.com';
           req.headers.host = 'c.y.qq.com';
         },
+        secure: false, //如果是https接口，需要配置这个参数
+        changeOrigin: true, //允许跨域
         pathRewrite: {
           '^/api/getDiscList': ''
         }
@@ -39,6 +43,27 @@ module.exports = {
         },
         pathRewrite: {
           '^/api/music': ''
+        }
+      },
+      '/api/lyric':{
+        target: 'https://szc.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg',
+        bypass: function (req, res, proxyOptions) {
+          req.headers.referer = 'https://c.y.qq.com';
+          req.headers.host = 'c.y.qq.com';
+        },
+        pathRewrite: {
+          '^/api/lyric': ''
+        }
+      },
+
+      '/api/search':{
+        target: 'https://c.y.qq.com/soso/fcgi-bin/search_for_qq_cp',
+        bypass: function (req, res, proxyOptions) {
+          req.headers.referer = 'https://c.y.qq.com';
+          req.headers.host = 'c.y.qq.com';
+        },
+        pathRewrite: {
+          '^/api/search': ''
         }
       }
     },
@@ -76,6 +101,7 @@ module.exports = {
 
   build: {
     // Template for index.html
+    port:8080,
     index: path.resolve(__dirname, '../dist/index.html'),
 
     // Paths

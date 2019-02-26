@@ -1,8 +1,8 @@
 import originJSONP from 'jsonp'
 
+//拼接url得到数据
 export default function jsonp(url, data, option) {
   url += (url.indexOf('?')<0 ? '?' : '&') + param(data)
-  console.log(url)
 
   return new Promise((resolve, reject) => {
       originJSONP(url, option, (err,data) => {

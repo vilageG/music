@@ -30,14 +30,15 @@ export default {
     ])
   },
   created(){
-    this._getDtails()
+    this._getDetails()
   },
   methods: {
-    _getDtails(){
-    if(!this.singer.id){
-      this.$router.push('/singer')
-      return
-    }
+    _getDetails(){
+      //获取不到id路由回退
+      if(!this.singer.id){
+        this.$router.push('/singer')
+        return
+      }
       getSingerDetail(this.singer.id).then((res) => {
         if(res.code === ERR_OK) {
           this.songs = this._normalizeSongs(res.data.list)
@@ -50,14 +51,7 @@ export default {
       list.forEach((item) => {
         let {musicData} = item
         if(musicData.songid && musicData.albummid){
-          getMusic(musicData.songmid).then(res => {
-            if(res.code === ERR_OK){
-              const svkey =res.data.items
-              const songVkey = svkey.vkey
-              const newSong = createSong(musicData, songVkey)
-              ret.push(newSong)
-            }
-          })
+            ret.push(createSong(musicData))
         }
       })
       return ret

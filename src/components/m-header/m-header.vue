@@ -1,8 +1,8 @@
 <template>
   <div class="m-header">
     <div class="icon"></div>
-    <h1 class="text">Chicken Music</h1>
-    <router-link tag="div" class="mine" to="/user">
+    <h1 class="text">Cat Music</h1>
+    <router-link tag="div" class="mine" to="/recommend">
       <i class="icon-mine"></i>
     </router-link>
   </div>
@@ -23,13 +23,14 @@ export default {}
     color: $color-theme
     font-size: 0
     .icon
-      display: inline-block
+      position: absolute
       vertical-align: top
       margin-top: 6px
       width: 30px
       height: 32px
-      margin-right: 9px
+      margin-left: 9px
       background-size: 30px 32px
+      bg-image('logo')
     .text
       display: inline-block
       vertical-align: top

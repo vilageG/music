@@ -1,36 +1,49 @@
 <template>
     <div class="player" v-show="playlist.length>0">
+      <transition name="normal">
         <div class="normal-player" v-show="fullScreen">
-            <div class="background"><img width="100%" height="100%"></div>
+            <div class="background">
+              <img width="100%" height="100%" :src="currentSong.image">
+            </div>
             <div class="top">
-              <div class="back">
+              <div class="back" @click ="back">
                 <i class="icon-back"></i>
               </div>
-              <h1 class="title"></h1>
-              <h2 class="subtitle"></h2>
+              <h1 class="title" v-html="currentSong.name"></h1>
+              <h2 class="subtitle" v-html="currentSong.singer"></h2>
             </div>
-            <div class="middle">
-                <div class="middle-l">
-                    <div class="cd-wrapper">
-                        <div class="cd">
-                            <img class="image">
-                        </div>
+            <div class="middle">                      
+                <Scroll class="middle-r" ref="lyricList" :data="currentLyric && currentLyric.lines">
+                  <div class="lyric-wrapper">
+                    <div v-if="currentLyric">
+                      <p ref="lyricLine" 
+                        class="text"
+                        :class= "{'current': currentLineNum === index}"
+                        v-for="(line,index) in currentLyric.lines">{{line.txt}}</p>
                     </div>
-                </div>
+                  </div>
+                </Scroll>
             </div>
             <div class="bottom">
+              <div class="progress-wrapper">
+                <span class="time time-l">{{format(currentTime)}}</span>
+                <div class="progress-bar-wrapper">
+                  <progress-bar :percent="percent"></progress-bar>
+                </div>
+                <span class="time time-r">{{format(currentSong.duration)}}</span>
+              </div>
               <div class="operators">
-                  <div class="icon i-left">
-                      <i class="icon-sequence"></i>
+                  <div class="icon i-left" @click="changeMode"> 
+                      <i :class="iconMode"></i>
                   </div>                  
                   <div class="icon i-left">
-                      <i class="icon-prev"></i>
+                      <i class="icon-prev" @click="prev"></i>
                   </div>
                   <div class="icon i-center">
-                      <i class="icon-play"></i>
+                      <i :class="playIcon" @click="togglePlaying"></i>
                   </div>
                   <div class="icon i-right">
-                      <i class="icon-next"></i>
+                      <i class="icon-next" @click="next"></i>
                   </div>
                   <div class="icon i-right">
                       <i class="icon-not-favorite"></i>
@@ -39,30 +52,209 @@
               </div>
             </div>
         </div>
-        <div class="mini-palyer" v-show="!fullScreen">
-            <div class="icon"><img src="" alt=""></div>
+      </transition>
+      <transition name="mini">
+        <div class="mini-player" v-show="!fullScreen" @click="open">
+            <div class="icon" >
+              <img  :class="cdCls" :src="currentSong.image" height="40" width='40'>
+            </div>
             <div class="text">
-                <h2 class="name"></h2>
-                <p class="des"></p>
+                <h2 class="name" v-html="currentSong.name"></h2>
+                <p class="desc" v-html="currentSong.singer"></p>
             </div>
             <div class="control">
-                
+                <i @click.stop="togglePlaying" :class="miniIcon"></i>
             </div>
-            <div class="control">
-                <i class="icon-palylist"></i>
+            <div class="control" @click.stop="showPlaylist">
+                <i class="icon-playlist"></i>
             </div>
         </div>
+      </transition>
+      <playlist ref="playlist"></playlist>
+      <audio ref="audio" @timeupdate ="updateTime">
+        <source :src="currentSong.url" type="audio/mpeg">
+      </audio>
     </div>
 </template>
 
 <script>
-import {mapGetters} from 'vuex'
+import {mapGetters,mapMutations} from 'vuex'
+import ProgressBar from 'base/progress-bar/progress-bar'
+import {playMode} from 'common/js/config'
+import {shuffle} from 'common/js/util'
+import Lyric from 'lyric-parser'
+import Scroll from 'base/scroll/scroll'
+import Playlist from 'components/playlist/playlist'
+
 export default {
+  data(){
+    return { 
+      currentTime:0,
+      currentLyric:null,
+      currentLineNum:0,
+    }
+  },
   computed:{
+    percent(){
+      return this.currentTime/this.currentSong.duration
+    },
+    cdCls(){
+      return this.playing? 'play':'play pause'
+    },
+    iconMode(){
+      return this.mode === playMode.sequence ? 'icon-sequence' : this.mode === playMode.loop ? 'icon-loop':'icon-random'
+    },
+    playIcon(){
+      return this.playing? 'icon-pause':'icon-play'
+    },
+    miniIcon(){
+      return this.playing? 'icon-pause-mini' : 'icon-play-mini'
+    },
     ...mapGetters([
       'fullScreen',
-      'playlist'
+      'playlist',
+      'currentSong',
+      'playing',
+      'currentIndex',
+      'mode',
+      'sequenceList'
     ])
+  },
+  methods:{
+    showPlaylist(){
+      this.$refs.playlist.show()
+    },
+    //改变播放模式
+    changeMode(){
+      const mode = (this.mode + 1)%3
+      this.setPlayMode(mode)
+      let list = null
+      if(mode === playMode.random){
+        list = shuffle(this.sequenceList)
+      }else{
+        list = this.sequenceList
+      }
+      this.resetCurrentIndex(list)
+      this.setPlayList(list)
+    },
+
+    resetCurrentIndex(list){
+      let index = list.findIndex((item)=>{
+        return item.id === this.currentSong.id
+      })
+      this.setCurrentIndex(index)
+    },
+    //缩小播放页
+    back(){
+      this.setFullScreen(false)
+    },
+    //打开播放页
+    open(){
+      this.setFullScreen(true)
+    },
+    //播放时间
+    updateTime(e){
+      this.currentTime = e.target.currentTime
+    },
+    format(interval){
+      interval = interval | 0
+      const minute = interval/60 | 0
+      const second = this._pad(interval % 60)
+      return `${minute}:${second}`
+    },
+    _pad(num, n = 2){
+      let len = num.toString().length
+      while(len <n){
+        num = '0' + num
+        len++
+      }
+      return num
+    },
+    ...mapMutations({
+      setFullScreen: "SET_FULL_SCREEN",
+      setPlayingState: "SET_PLAYING_STATE",
+      setCurrentIndex: "SET_CURRENT_INDEX",
+      setPlayMode: "SET_PLAY_MODE",
+      setPlayList: "SET_PLAYLIST"
+    }),
+    //下一首
+    next(){
+      let index = this.currentIndex + 1
+      if(index === this.playlist.length){
+        index = 0
+      }
+      this.setCurrentIndex(index)
+      if(!this.playing){
+        this.togglePlaying()
+      }
+    },
+    //上一首
+    prev(){
+      let index = this.currentIndex + 1
+      if(index === -1){
+        index = this.playlist.length -1
+      }
+      this.setCurrentIndex(index)
+      if(!this.playing){
+        this.togglePlaying()
+      }
+    },
+    togglePlaying(){
+      this.setPlayingState(!this.playing)
+      if(this.currentLyric){
+        this.currentLyric.togglePlay()
+      }
+    },
+    getLyric() {
+      this.currentSong.getLyric().then((lyric) => {
+    //利用第三方库: js-lyric ，解析我们的歌词，生成方便操作的对象
+    //new Lyric生成的实例,还有一些api方便使用play、stop等等
+    //this.handleLyric回调函数handleLyric(lineNum,txt):(当前播放的行数，当前播放的文字)
+      this.currentLyric = new Lyric(lyric, this.handleLyric)
+      console.log(this.currentLyric)
+      if (this.playing) {
+        this.currentLyric.play()
+      }
+      }).catch(() => {
+        //如果歌词有问题，初始化
+        this.currentLyric = null
+        this.playingLyric = ''
+        this.currentLineNum = 0
+      })
+    },
+    handleLyric({lineNum,txt}) {
+      this.currentLineNum = lineNum
+    }
+
+    
+  },
+  watch: {
+    currentSong(newSong, oldSong){
+      if(!newSong.id){
+        return
+      }
+      if (newSong.id === oldSong.id){
+        return 
+      }
+      if(this.currentLyric){
+        this.currentLyric.stop()
+      }
+      this.$nextTick(()=>{
+         this.$refs.audio.play()
+         this.getLyric()
+      })  
+    },
+    playing(newPlaying){
+      const audio = this.$refs.audio
+      this.$nextTick(()=>{
+        newPlaying? audio.play() : audio.pause()
+      }) 
+    }
+  },
+  components:{
+    ProgressBar,
+    Scroll,
+    Playlist
   }
 }
 </script>
